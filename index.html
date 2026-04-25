@@ -21,6 +21,7 @@
         .shift-S { background-color: #ecfeff; color: #0891b2; }
         .shift-L { background-color: #1e293b; color: white; }
         .shift-TI { background-color: #312e81; color: white; } 
+        .shift-CR { background-color: #ccfbf1; color: #0f766e; border: 2px solid #5eead4; } 
         .shift-- { background-color: white; color: #cbd5e1; }
         
         .req-input { width: 100%; height: 100%; text-align: center; font-weight: bold; border: none; background: transparent; text-transform: uppercase; }
@@ -70,7 +71,7 @@
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 text-center no-print">
             <h1 class="text-3xl font-bold text-slate-900 tracking-tight">PRND Roster Planner Pro</h1>
-            <p class="text-slate-500 mt-1 italic text-sm">Strict Pattern Validation & Auto-O Enforcement</p>
+            <p class="text-slate-500 mt-1 italic text-sm">Compensatory Rest (CR) & Gap Management Engine</p>
         </header>
 
         <div class="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-slate-200 no-print">
@@ -136,7 +137,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 no-print">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800">Final Staff Roster</h2>
-                    <p class="text-xs text-slate-400">Night shifts (N/ON) are automatically followed by Off (O).</p>
+                    <p class="text-xs text-slate-400">CR shifts are given automatically if a weekly rest day (R) was missed due to coverage.</p>
                 </div>
                 <div class="flex gap-2 w-full md:w-auto">
                     <button onclick="copyToClipboard()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-300 transition text-sm flex-1">Copy Data</button>
@@ -152,10 +153,11 @@
             </div>
             
             <div class="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap gap-4 no-print">
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-TI block rounded"></i> TI: Borrowed</div>
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-CR block rounded"></i> CR: Compensatory Rest</div>
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-R block rounded"></i> R: Weekly Rest</div>
                 <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-L block rounded"></i> L: Leave</div>
                 <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 border border-purple-500 block rounded bg-purple-50"></i> Purple: Edited</div>
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><span class="text-red-600 font-black">⚠️ 4D:</span> 4+ Consecutive Days</div>
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><span class="text-red-600 font-black">⚠️ 4D:</span> Working too long</div>
             </div>
         </div>
     </div>
@@ -169,7 +171,7 @@
             manualOverrides: {} 
         };
 
-        const shiftOrder = ["D", "N", "ON", "O", "R", "S", "L", "TI", "-"];
+        const shiftOrder = ["D", "N", "ON", "O", "R", "S", "L", "TI", "CR", "-"];
 
         function showToast(msg) {
             const t = document.getElementById("toast");
@@ -204,8 +206,7 @@
 
         function initializeGrid() {
             const dateStr = document.getElementById('startDate').value;
-            if (!dateStr) return showToast("Please select a date.");
-            
+            if (!dateStr) return showToast("Select a start date.");
             state.startDate = new Date(dateStr);
             state.totalDays = parseInt(document.getElementById('numDays').value);
             state.staff = [
@@ -213,7 +214,6 @@
                 { name: document.getElementById('name1').value, rest: parseInt(document.getElementById('rest1').value) },
                 { name: document.getElementById('name2').value, rest: parseInt(document.getElementById('rest2').value) }
             ];
-
             renderReqGrid();
             document.getElementById('reqContainer').classList.remove('hidden');
         }
@@ -230,7 +230,6 @@
             const body = document.getElementById('reqBody');
             head.innerHTML = '<th class="p-3 border sticky left-0 bg-slate-50 min-w-[140px] text-[10px] uppercase">Staff</th>';
             body.innerHTML = '';
-
             for (let i = 0; i < state.totalDays; i++) {
                 const d = new Date(state.startDate);
                 d.setDate(d.getDate() + i);
@@ -239,7 +238,6 @@
                 th.innerHTML = `<b>${d.toLocaleDateString('en-GB', { weekday: 'short' })}</b><br>${d.toLocaleDateString('en-GB', { day: '2-digit' })}`;
                 head.appendChild(th);
             }
-
             state.staff.forEach((s, sIdx) => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-white z-10">${s.name}</td>`;
@@ -294,64 +292,94 @@
 
             const finalMatrix = state.staff.map(() => new Array(state.totalDays).fill("-"));
             const tiNeededFlags = new Array(state.totalDays).fill(null);
+            const staffDebt = [0, 0, 0]; // Tracks missed R shifts
 
-            // Populate Duty Matrix with Strict Sequence Enforcement
-            state.staff.forEach((s, sIdx) => {
-                for (let i = 0; i < state.totalDays; i++) {
-                    const d = new Date(state.startDate);
-                    d.setDate(d.getDate() + i);
+            // Day-by-Day Generation to handle sequential rules and debts
+            for (let i = 0; i < state.totalDays; i++) {
+                const d = new Date(state.startDate);
+                d.setDate(d.getDate() + i);
+                const dayOfWeek = d.getDay();
+
+                // 1. Initial assignment
+                state.staff.forEach((s, sIdx) => {
                     const key = `${sIdx}-${i}`;
-                    
                     let finalVal = "-";
                     const override = state.manualOverrides[key];
                     const requirement = state.requirements[key];
 
-                    // 1. Priority: Manual Override or Requirement
-                    if (override !== undefined) {
-                        finalVal = override;
-                    } else if (requirement !== undefined && requirement !== "-") {
-                        finalVal = requirement;
-                    } else {
-                        // 2. Automated Logic
-                        finalVal = getAutoShift(sIdx, d, i);
+                    if (override !== undefined) finalVal = override;
+                    else if (requirement !== undefined && requirement !== "-") finalVal = requirement;
+                    else finalVal = getAutoShift(sIdx, d, i);
+
+                    // Force fixed R day anchor
+                    if (dayOfWeek === s.rest) {
+                        if (finalVal !== "L" && override === undefined) {
+                            // System-wide: if there is a gap or someone else on L, this R might be stolen
+                            const othersLeave = state.staff.some((_, idx) => idx !== sIdx && state.requirements[`${idx}-${i}`] === 'L');
+                            if (othersLeave) {
+                                finalVal = "D"; // Work to cover leave
+                                staffDebt[sIdx]++; // Missed rest, gain debt
+                            } else {
+                                finalVal = "R";
+                            }
+                        }
+                    } else if (finalVal === "R") {
+                        finalVal = "D"; // Cannot have R on non-preset day
                     }
 
-                    // 3. Post-Night Enforcement Rule: Mandatory O after N/ON
-                    // This rule applies IF the user hasn't forced a specific different duty like "L"
+                    // Rule: O after N or ON
                     if (i > 0) {
-                        const prevShift = finalMatrix[sIdx][i-1];
-                        if (prevShift === "N" || prevShift === "ON") {
-                            // If current is not Leave or a manual change, force to "O"
-                            if (finalVal !== "L" && override === undefined && (requirement === undefined || requirement === "-")) {
-                                finalVal = "O";
+                        const prev = finalMatrix[sIdx][i-1];
+                        if ((prev === "N" || prev === "ON") && finalVal !== "L" && override === undefined) {
+                            finalVal = "O";
+                        }
+                    }
+
+                    // Rule: No O after O
+                    if (i > 0 && finalMatrix[sIdx][i-1] === "O" && finalVal === "O" && override === undefined) {
+                        finalVal = "D";
+                    }
+
+                    finalMatrix[sIdx][i] = finalVal;
+                });
+
+                // 2. Compensatory Rest (CR) Logic
+                // Only give CR if debt > 0 AND we have sufficient coverage on THIS day
+                state.staff.forEach((s, sIdx) => {
+                    if (staffDebt[sIdx] > 0) {
+                        const currentVal = finalMatrix[sIdx][i];
+                        // Staff is eligible for CR today if they aren't on R, L, or mandatory O
+                        if (currentVal === "D" || currentVal === "S" || currentVal === "-") {
+                            // Coverage Check: Can the OTHER staff cover D and N/ON?
+                            const others = state.staff.map((_, idx) => idx).filter(idx => idx !== sIdx);
+                            const otherDuties = others.map(idx => finalMatrix[idx][i]);
+                            const hasDay = otherDuties.includes("D") || otherDuties.includes("S");
+                            const hasNight = otherDuties.includes("N") || otherDuties.includes("ON");
+
+                            if (hasDay && hasNight) {
+                                finalMatrix[sIdx][i] = "CR";
+                                staffDebt[sIdx]--;
                             }
                         }
                     }
-                    
-                    finalMatrix[sIdx][i] = finalVal;
-                }
-            });
+                });
+            }
 
-            // Gap Detection & Header Rendering
+            // Gap Detection & Rendering
             for (let i = 0; i < state.totalDays; i++) {
-                const dayShifts = finalMatrix.map(row => row[i]);
-                if (dayShifts.includes("TI")) {
-                    tiNeededFlags[i] = "ON DUTY";
-                } else if (!dayShifts.includes("D")) {
-                    tiNeededFlags[i] = "REQ: DAY";
-                } else if (!dayShifts.includes("N") && !dayShifts.includes("ON")) {
-                    tiNeededFlags[i] = "REQ: NIGHT";
-                }
-                
                 const d = new Date(state.startDate);
                 d.setDate(d.getDate() + i);
+                const dayShifts = finalMatrix.map(row => row[i]);
+                if (dayShifts.includes("TI")) tiNeededFlags[i] = "ON DUTY";
+                else if (!dayShifts.includes("D") && !dayShifts.includes("S")) tiNeededFlags[i] = "REQ: DAY";
+                else if (!dayShifts.includes("N") && !dayShifts.includes("ON")) tiNeededFlags[i] = "REQ: NIGHT";
+                
                 const th = document.createElement('th');
                 th.className = "p-3 border text-[11px] font-bold bg-slate-50";
                 th.innerHTML = `<span class="text-slate-400">${d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}</span><br>${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`;
                 head.appendChild(th);
             }
 
-            // Render Staff Rows
             state.staff.forEach((s, sIdx) => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-white z-10">${s.name}</td>`;
@@ -360,22 +388,18 @@
                     const td = document.createElement('td');
                     const isManual = !!state.manualOverrides[`${sIdx}-${i}`];
                     const isWarning = checkContinuousD(sIdx, i, finalMatrix);
-                    
                     td.className = `p-4 border shift-cell shift-${val} ${isManual ? 'manual-entry' : ''} ${isWarning ? 'warning-4d' : ''}`;
                     td.innerText = val;
                     td.onclick = () => {
-                        let curVal = td.innerText;
-                        let curIdx = shiftOrder.indexOf(curVal);
-                        if (curIdx === -1) curIdx = shiftOrder.length - 1;
+                        let curIdx = shiftOrder.indexOf(td.innerText);
                         state.manualOverrides[`${sIdx}-${i}`] = shiftOrder[(curIdx + 1) % shiftOrder.length];
-                        generateRoster(); // Re-trigger to update enforcement logic
+                        generateRoster();
                     };
                     tr.appendChild(td);
                 }
                 body.appendChild(tr);
             });
 
-            // Render TI Row
             const trTI = document.createElement('tr');
             trTI.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-slate-200 z-10 text-[10px]">TI SUPPORT</td>`;
             for (let i = 0; i < state.totalDays; i++) {
@@ -386,7 +410,6 @@
                 trTI.appendChild(td);
             }
             body.appendChild(trTI);
-
             document.getElementById('rosterContainer').classList.remove('hidden');
         }
     </script>
