@@ -10,8 +10,11 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #1e293b; transition: background 0.3s; }
         
-        .shift-cell { font-weight: 700; transition: all 0.1s; cursor: pointer; border: 1px solid #e2e8f0; min-width: 45px; }
+        .shift-cell { position: relative; font-weight: 700; transition: all 0.1s; cursor: pointer; border: 1px solid #e2e8f0; min-width: 55px; height: 60px; }
         
+        /* Original Duty Badge */
+        .orig-badge { position: absolute; top: 2px; right: 2px; font-size: 9px; font-weight: 500; opacity: 0.5; pointer-events: none; }
+
         /* Shift Color Palette */
         .shift-D { background-color: #dcfce7; color: #166534; } 
         .shift-N { background-color: #fee2e2; color: #991b1b; } 
@@ -29,8 +32,8 @@
 
         .manual-entry { outline: 3px solid #a855f7 !important; outline-offset: -3px; color: #6b21a8 !important; background-color: #faf5ff !important; }
         
-        .warning-4d { position: relative; }
-        .warning-4d::after { content: '⚠️ 4D'; position: absolute; top: -2px; right: 2px; font-size: 8px; color: #b91c1c; font-weight: 900; }
+        /* Warning Badge */
+        .warning-4d::after { content: '⚠️ 4D'; position: absolute; bottom: 2px; right: 2px; font-size: 8px; color: #b91c1c; font-weight: 900; }
 
         body.is-printing .no-print { display: none !important; }
         body.is-printing { background: white !important; padding: 0 !important; }
@@ -42,8 +45,8 @@
             .no-print, #print-instruction { display: none !important; }
             body { background: white !important; }
             table { font-size: 10px; width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #333 !important; padding: 6px !important; }
-            .shift-cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            th, td { border: 1px solid #333 !important; padding: 4px !important; }
+            .shift-cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; height: auto !important; min-height: 40px; }
             @page { size: landscape; margin: 10mm; }
         }
         
@@ -62,14 +65,14 @@
 
     <div id="print-instruction" class="bg-indigo-600 text-white p-4 text-center sticky top-0 z-50 shadow-lg no-print">
         <p class="font-bold">PRINT MODE ACTIVE</p>
-        <p class="text-sm">Use <kbd class="bg-indigo-800 px-1 rounded">Ctrl+P</kbd> to save as PDF.</p>
+        <p class="text-sm">Use <kbd class="bg-indigo-800 px-1 rounded">Ctrl+P</kbd> to save as PDF. Original duties in brackets will be visible.</p>
         <button onclick="exitPrintMode()" class="mt-2 text-xs underline uppercase tracking-tighter">Exit Print Mode</button>
     </div>
 
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 text-center no-print">
             <h1 class="text-3xl font-bold text-slate-900 tracking-tight">PRND Roster Planner Pro</h1>
-            <p class="text-slate-500 mt-1 italic text-sm">Intelligent Resource & Fatigue Management</p>
+            <p class="text-slate-500 mt-1 italic text-sm">Base reference tracking with Intelligent TI Allocation</p>
         </header>
 
         <!-- Configuration -->
@@ -138,7 +141,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 no-print">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800">Final Staff Roster</h2>
-                    <p class="text-xs text-slate-400 italic">TI support automatically mitigates gaps and burnout (4D rule).</p>
+                    <p class="text-xs text-slate-400 italic">Duty in <span class="font-bold">(brackets)</span> represents the original automated schedule before rules were applied.</p>
                 </div>
                 <div class="flex gap-2 w-full md:w-auto">
                     <button onclick="copyToClipboard()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-300 transition text-sm flex-1">Copy Data</button>
@@ -154,10 +157,9 @@
             </div>
             
             <div class="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap gap-4 no-print">
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-TI block rounded"></i> TI: Borrowed Support</div>
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-TI block rounded"></i> TI: Borrowed</div>
                 <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-CR block rounded"></i> CR: Compensatory Rest</div>
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 border border-purple-500 block rounded bg-purple-50"></i> Purple: Manual Edit</div>
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><span class="text-red-600 font-black">⚠️ 4D:</span> Continuous Days</div>
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><span class="px-1 border border-slate-300 text-[9px] font-bold">(X)</span>: Original Duty</div>
             </div>
         </div>
     </div>
@@ -182,7 +184,7 @@
 
         function enterPrintMode() {
             document.body.classList.add('is-printing');
-            showToast("Print Mode Ready. Press Ctrl+P.");
+            showToast("Print Mode Active. Press Ctrl+P.");
         }
 
         function exitPrintMode() {
@@ -199,7 +201,7 @@
                 document.execCommand('copy');
                 showToast("Copied! Paste into Excel.");
             } catch (err) {
-                showToast("Please select the table manually.");
+                showToast("Select table manually to copy.");
             }
             window.getSelection().removeAllRanges();
         }
@@ -289,6 +291,7 @@
             body.innerHTML = '';
 
             const finalMatrix = state.staff.map(() => new Array(state.totalDays).fill("-"));
+            const origMatrix = state.staff.map(() => new Array(state.totalDays).fill("-"));
             const tiUsage = new Array(state.totalDays).fill(null);
             const staffDebt = [0, 0, 0];
 
@@ -297,25 +300,29 @@
                 d.setDate(d.getDate() + i);
                 const dayOfWeek = d.getDay();
 
-                // 1. Initial Priority Assignment
                 state.staff.forEach((s, sIdx) => {
                     const key = `${sIdx}-${i}`;
                     let val = "-";
                     const override = state.manualOverrides[key];
                     const requirement = state.requirements[key];
 
+                    // Baseline (The duty displayed in brackets)
+                    let baseVal = getAutoShift(sIdx, d, i);
+                    if (dayOfWeek === s.rest) baseVal = "R";
+                    else if (baseVal === "R") baseVal = "D";
+                    origMatrix[sIdx][i] = baseVal;
+
+                    // Final Allocation Logic
                     if (override !== undefined) val = override;
                     else if (requirement !== undefined && requirement !== "-") val = requirement;
-                    else val = getAutoShift(sIdx, d, i);
+                    else val = baseVal;
 
-                    // Golden Rule: Rest Day Lock
+                    // Golden Rule Lock: Rest Day
                     if (dayOfWeek === s.rest) {
                         if (val !== "L" && override === undefined) {
                             const othersLeave = state.staff.some((_, idx) => idx !== sIdx && state.requirements[`${idx}-${i}`] === 'L');
-                            if (othersLeave) {
-                                val = "D";
-                                staffDebt[sIdx]++;
-                            } else val = "R";
+                            if (othersLeave) { val = "D"; staffDebt[sIdx]++; } 
+                            else val = "R";
                         }
                     } else if (val === "R") val = "D";
 
@@ -324,57 +331,38 @@
                         const prev = finalMatrix[sIdx][i-1];
                         if ((prev === "N" || prev === "ON") && val !== "L" && override === undefined) val = "O";
                     }
-
-                    // Golden Rule: No double O
                     if (i > 0 && finalMatrix[sIdx][i-1] === "O" && val === "O" && override === undefined) val = "D";
 
                     finalMatrix[sIdx][i] = val;
                 });
 
-                // 2. Intelligent Gap Fill & fatigue prevention with TI
+                // Intelligent Gap Fill
                 let hasDay = finalMatrix.some(row => row[i] === "D" || row[i] === "S");
                 let hasNight = finalMatrix.some(row => row[i] === "N" || row[i] === "ON");
+                if (!hasNight) { tiUsage[i] = "TI: NIGHT"; hasNight = true; }
+                if (!hasDay) { tiUsage[i] = tiUsage[i] ? "TI: FULL" : "TI: DAY"; hasDay = true; }
 
-                // Fill Gap: Missing Night
-                if (!hasNight) {
-                    tiUsage[i] = "TI: NIGHT";
-                    hasNight = true;
-                }
-                
-                // Fill Gap: Missing Day
-                if (!hasDay) {
-                    tiUsage[i] = tiUsage[i] ? "TI: FULL" : "TI: DAY";
-                    hasDay = true;
-                }
-
-                // Fatigue Mitigation (4D Rule)
-                // If a TI is NOT already used for a gap, use them to break a 4D chain
+                // Fatigue Relief
                 if (!tiUsage[i]) {
                     state.staff.forEach((s, sIdx) => {
                         if (countConsecutiveD(sIdx, i, finalMatrix) >= 4) {
-                            // Break the chain: Assign O to staff, TI takes over
                             finalMatrix[sIdx][i] = "O";
                             tiUsage[i] = "TI: RELIEF";
                         }
                     });
                 }
 
-                // 3. Compensatory Rest (CR)
+                // Compensatory Rest
                 state.staff.forEach((s, sIdx) => {
                     if (staffDebt[sIdx] > 0 && (finalMatrix[sIdx][i] === "D" || finalMatrix[sIdx][i] === "-")) {
                         const others = [0, 1, 2].filter(x => x !== sIdx);
                         const coverageDay = others.some(x => finalMatrix[x][i] === "D" || finalMatrix[x][i] === "S") || (tiUsage[i] && tiUsage[i].includes("DAY"));
                         const coverageNight = others.some(x => finalMatrix[x][i] === "N" || finalMatrix[x][i] === "ON") || (tiUsage[i] && tiUsage[i].includes("NIGHT"));
-                        
-                        if (coverageDay && coverageNight) {
-                            finalMatrix[sIdx][i] = "CR";
-                            staffDebt[sIdx]--;
-                        }
+                        if (coverageDay && coverageNight) { finalMatrix[sIdx][i] = "CR"; staffDebt[sIdx]--; }
                     }
                 });
             }
 
-            // Headers
             for (let i = 0; i < state.totalDays; i++) {
                 const d = new Date(state.startDate);
                 d.setDate(d.getDate() + i);
@@ -384,19 +372,21 @@
                 head.appendChild(th);
             }
 
-            // Render Rows
             state.staff.forEach((s, sIdx) => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-white z-10">${s.name}</td>`;
                 for (let i = 0; i < state.totalDays; i++) {
                     const val = finalMatrix[sIdx][i];
+                    const orig = origMatrix[sIdx][i];
                     const td = document.createElement('td');
                     const isManual = !!state.manualOverrides[`${sIdx}-${i}`];
                     const isWarning = countConsecutiveD(sIdx, i, finalMatrix) >= 4;
+                    
                     td.className = `p-4 border shift-cell shift-${val} ${isManual ? 'manual-entry' : ''} ${isWarning ? 'warning-4d' : ''}`;
-                    td.innerText = val;
+                    td.innerHTML = `<span class="orig-badge">(${orig})</span>${val}`;
+                    
                     td.onclick = () => {
-                        let curIdx = shiftOrder.indexOf(td.innerText);
+                        let curIdx = shiftOrder.indexOf(val);
                         state.manualOverrides[`${sIdx}-${i}`] = shiftOrder[(curIdx + 1) % shiftOrder.length];
                         generateRoster();
                     };
@@ -405,7 +395,6 @@
                 body.appendChild(tr);
             });
 
-            // TI Support Row
             const trTI = document.createElement('tr');
             trTI.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-slate-200 z-10 text-[9px] uppercase tracking-tighter">TI SUPPORT</td>`;
             for (let i = 0; i < state.totalDays; i++) {
