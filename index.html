@@ -21,7 +21,7 @@
         .shift-S { background-color: #ecfeff; color: #0891b2; }
         .shift-L { background-color: #1e293b; color: white; }
         .shift-TI { background-color: #312e81; color: white; } 
-        .shift-CR { background-color: #ccfbf1; color: #0f766e; border: 2px solid #5eead4; } 
+        .shift-CR { background-color: #ccfbf1; color: #0f766e; border: 1px solid #5eead4; } 
         .shift-- { background-color: white; color: #cbd5e1; }
         
         .req-input { width: 100%; height: 100%; text-align: center; font-weight: bold; border: none; background: transparent; text-transform: uppercase; }
@@ -32,11 +32,9 @@
         .warning-4d { position: relative; }
         .warning-4d::after { content: '⚠️ 4D'; position: absolute; top: -2px; right: 2px; font-size: 8px; color: #b91c1c; font-weight: 900; }
 
-        /* Print Mode */
         body.is-printing .no-print { display: none !important; }
         body.is-printing { background: white !important; padding: 0 !important; }
-        body.is-printing .max-w-7xl { max-width: 100% !important; width: 100% !important; margin: 0 !important; }
-        body.is-printing #rosterContainer { border: none !important; box-shadow: none !important; padding: 0 !important; }
+        
         #print-instruction { display: none; }
         body.is-printing #print-instruction { display: block; }
 
@@ -63,17 +61,18 @@
     <div id="toast">Message here</div>
 
     <div id="print-instruction" class="bg-indigo-600 text-white p-4 text-center sticky top-0 z-50 shadow-lg no-print">
-        <p class="font-bold uppercase tracking-widest">Print Mode Ready</p>
-        <p class="text-sm opacity-90">Use <kbd class="bg-indigo-800 px-1 rounded">Ctrl+P</kbd> or <kbd class="bg-indigo-800 px-1 rounded">Cmd+P</kbd> to save PDF.</p>
-        <button onclick="exitPrintMode()" class="mt-2 text-xs underline font-bold uppercase tracking-tighter hover:text-indigo-200 transition">Exit Print Mode</button>
+        <p class="font-bold">PRINT MODE ACTIVE</p>
+        <p class="text-sm">Use <kbd class="bg-indigo-800 px-1 rounded">Ctrl+P</kbd> to save as PDF.</p>
+        <button onclick="exitPrintMode()" class="mt-2 text-xs underline uppercase tracking-tighter">Exit Print Mode</button>
     </div>
 
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 text-center no-print">
             <h1 class="text-3xl font-bold text-slate-900 tracking-tight">PRND Roster Planner Pro</h1>
-            <p class="text-slate-500 mt-1 italic text-sm">Compensatory Rest (CR) & Gap Management Engine</p>
+            <p class="text-slate-500 mt-1 italic text-sm">Intelligent Resource & Fatigue Management</p>
         </header>
 
+        <!-- Configuration -->
         <div class="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-slate-200 no-print">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
@@ -115,6 +114,7 @@
             </div>
         </div>
 
+        <!-- Requirements Grid -->
         <div id="reqContainer" class="hidden bg-white rounded-2xl shadow-sm p-6 mb-6 border border-slate-200 no-print">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="font-bold text-lg text-slate-800">2. Define Manual Requirements</h2>
@@ -133,11 +133,12 @@
             </div>
         </div>
 
+        <!-- Final Roster -->
         <div id="rosterContainer" class="hidden bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 no-print">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800">Final Staff Roster</h2>
-                    <p class="text-xs text-slate-400">CR shifts are given automatically if a weekly rest day (R) was missed due to coverage.</p>
+                    <p class="text-xs text-slate-400 italic">TI support automatically mitigates gaps and burnout (4D rule).</p>
                 </div>
                 <div class="flex gap-2 w-full md:w-auto">
                     <button onclick="copyToClipboard()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-300 transition text-sm flex-1">Copy Data</button>
@@ -153,11 +154,10 @@
             </div>
             
             <div class="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap gap-4 no-print">
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-TI block rounded"></i> TI: Borrowed Support</div>
                 <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-CR block rounded"></i> CR: Compensatory Rest</div>
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-R block rounded"></i> R: Weekly Rest</div>
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-L block rounded"></i> L: Leave</div>
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 border border-purple-500 block rounded bg-purple-50"></i> Purple: Edited</div>
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><span class="text-red-600 font-black">⚠️ 4D:</span> Working too long</div>
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 border border-purple-500 block rounded bg-purple-50"></i> Purple: Manual Edit</div>
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><span class="text-red-600 font-black">⚠️ 4D:</span> Continuous Days</div>
             </div>
         </div>
     </div>
@@ -197,9 +197,9 @@
             window.getSelection().addRange(range);
             try {
                 document.execCommand('copy');
-                showToast("Copied! Paste into Excel/Word.");
+                showToast("Copied! Paste into Excel.");
             } catch (err) {
-                showToast("Select table manually to copy.");
+                showToast("Please select the table manually.");
             }
             window.getSelection().removeAllRanges();
         }
@@ -273,15 +273,13 @@
             return shift;
         }
 
-        function checkContinuousD(sIdx, currentDayIdx, matrix) {
-            const val = matrix[sIdx][currentDayIdx];
-            if (val !== 'D') return false;
-            let count = 1;
-            for (let i = currentDayIdx - 1; i >= 0; i--) {
-                if (matrix[sIdx] && matrix[sIdx][i] === 'D') count++;
+        function countConsecutiveD(sIdx, i, matrix) {
+            let count = 0;
+            for (let j = i; j >= 0; j--) {
+                if (matrix[sIdx][j] === 'D') count++;
                 else break;
             }
-            return count >= 4;
+            return count;
         }
 
         function generateRoster() {
@@ -291,95 +289,102 @@
             body.innerHTML = '';
 
             const finalMatrix = state.staff.map(() => new Array(state.totalDays).fill("-"));
-            const tiNeededFlags = new Array(state.totalDays).fill(null);
-            const staffDebt = [0, 0, 0]; // Tracks missed R shifts
+            const tiUsage = new Array(state.totalDays).fill(null);
+            const staffDebt = [0, 0, 0];
 
-            // Day-by-Day Generation to handle sequential rules and debts
             for (let i = 0; i < state.totalDays; i++) {
                 const d = new Date(state.startDate);
                 d.setDate(d.getDate() + i);
                 const dayOfWeek = d.getDay();
 
-                // 1. Initial assignment
+                // 1. Initial Priority Assignment
                 state.staff.forEach((s, sIdx) => {
                     const key = `${sIdx}-${i}`;
-                    let finalVal = "-";
+                    let val = "-";
                     const override = state.manualOverrides[key];
                     const requirement = state.requirements[key];
 
-                    if (override !== undefined) finalVal = override;
-                    else if (requirement !== undefined && requirement !== "-") finalVal = requirement;
-                    else finalVal = getAutoShift(sIdx, d, i);
+                    if (override !== undefined) val = override;
+                    else if (requirement !== undefined && requirement !== "-") val = requirement;
+                    else val = getAutoShift(sIdx, d, i);
 
-                    // Force fixed R day anchor
+                    // Golden Rule: Rest Day Lock
                     if (dayOfWeek === s.rest) {
-                        if (finalVal !== "L" && override === undefined) {
-                            // System-wide: if there is a gap or someone else on L, this R might be stolen
+                        if (val !== "L" && override === undefined) {
                             const othersLeave = state.staff.some((_, idx) => idx !== sIdx && state.requirements[`${idx}-${i}`] === 'L');
                             if (othersLeave) {
-                                finalVal = "D"; // Work to cover leave
-                                staffDebt[sIdx]++; // Missed rest, gain debt
-                            } else {
-                                finalVal = "R";
-                            }
+                                val = "D";
+                                staffDebt[sIdx]++;
+                            } else val = "R";
                         }
-                    } else if (finalVal === "R") {
-                        finalVal = "D"; // Cannot have R on non-preset day
-                    }
+                    } else if (val === "R") val = "D";
 
-                    // Rule: O after N or ON
+                    // Golden Rule: O after Night
                     if (i > 0) {
                         const prev = finalMatrix[sIdx][i-1];
-                        if ((prev === "N" || prev === "ON") && finalVal !== "L" && override === undefined) {
-                            finalVal = "O";
-                        }
+                        if ((prev === "N" || prev === "ON") && val !== "L" && override === undefined) val = "O";
                     }
 
-                    // Rule: No O after O
-                    if (i > 0 && finalMatrix[sIdx][i-1] === "O" && finalVal === "O" && override === undefined) {
-                        finalVal = "D";
-                    }
+                    // Golden Rule: No double O
+                    if (i > 0 && finalMatrix[sIdx][i-1] === "O" && val === "O" && override === undefined) val = "D";
 
-                    finalMatrix[sIdx][i] = finalVal;
+                    finalMatrix[sIdx][i] = val;
                 });
 
-                // 2. Compensatory Rest (CR) Logic
-                // Only give CR if debt > 0 AND we have sufficient coverage on THIS day
-                state.staff.forEach((s, sIdx) => {
-                    if (staffDebt[sIdx] > 0) {
-                        const currentVal = finalMatrix[sIdx][i];
-                        // Staff is eligible for CR today if they aren't on R, L, or mandatory O
-                        if (currentVal === "D" || currentVal === "S" || currentVal === "-") {
-                            // Coverage Check: Can the OTHER staff cover D and N/ON?
-                            const others = state.staff.map((_, idx) => idx).filter(idx => idx !== sIdx);
-                            const otherDuties = others.map(idx => finalMatrix[idx][i]);
-                            const hasDay = otherDuties.includes("D") || otherDuties.includes("S");
-                            const hasNight = otherDuties.includes("N") || otherDuties.includes("ON");
+                // 2. Intelligent Gap Fill & fatigue prevention with TI
+                let hasDay = finalMatrix.some(row => row[i] === "D" || row[i] === "S");
+                let hasNight = finalMatrix.some(row => row[i] === "N" || row[i] === "ON");
 
-                            if (hasDay && hasNight) {
-                                finalMatrix[sIdx][i] = "CR";
-                                staffDebt[sIdx]--;
-                            }
+                // Fill Gap: Missing Night
+                if (!hasNight) {
+                    tiUsage[i] = "TI: NIGHT";
+                    hasNight = true;
+                }
+                
+                // Fill Gap: Missing Day
+                if (!hasDay) {
+                    tiUsage[i] = tiUsage[i] ? "TI: FULL" : "TI: DAY";
+                    hasDay = true;
+                }
+
+                // Fatigue Mitigation (4D Rule)
+                // If a TI is NOT already used for a gap, use them to break a 4D chain
+                if (!tiUsage[i]) {
+                    state.staff.forEach((s, sIdx) => {
+                        if (countConsecutiveD(sIdx, i, finalMatrix) >= 4) {
+                            // Break the chain: Assign O to staff, TI takes over
+                            finalMatrix[sIdx][i] = "O";
+                            tiUsage[i] = "TI: RELIEF";
+                        }
+                    });
+                }
+
+                // 3. Compensatory Rest (CR)
+                state.staff.forEach((s, sIdx) => {
+                    if (staffDebt[sIdx] > 0 && (finalMatrix[sIdx][i] === "D" || finalMatrix[sIdx][i] === "-")) {
+                        const others = [0, 1, 2].filter(x => x !== sIdx);
+                        const coverageDay = others.some(x => finalMatrix[x][i] === "D" || finalMatrix[x][i] === "S") || (tiUsage[i] && tiUsage[i].includes("DAY"));
+                        const coverageNight = others.some(x => finalMatrix[x][i] === "N" || finalMatrix[x][i] === "ON") || (tiUsage[i] && tiUsage[i].includes("NIGHT"));
+                        
+                        if (coverageDay && coverageNight) {
+                            finalMatrix[sIdx][i] = "CR";
+                            staffDebt[sIdx]--;
                         }
                     }
                 });
             }
 
-            // Gap Detection & Rendering
+            // Headers
             for (let i = 0; i < state.totalDays; i++) {
                 const d = new Date(state.startDate);
                 d.setDate(d.getDate() + i);
-                const dayShifts = finalMatrix.map(row => row[i]);
-                if (dayShifts.includes("TI")) tiNeededFlags[i] = "ON DUTY";
-                else if (!dayShifts.includes("D") && !dayShifts.includes("S")) tiNeededFlags[i] = "REQ: DAY";
-                else if (!dayShifts.includes("N") && !dayShifts.includes("ON")) tiNeededFlags[i] = "REQ: NIGHT";
-                
                 const th = document.createElement('th');
                 th.className = "p-3 border text-[11px] font-bold bg-slate-50";
-                th.innerHTML = `<span class="text-slate-400">${d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}</span><br>${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`;
+                th.innerHTML = `<span class="text-slate-400 uppercase">${d.toLocaleDateString('en-GB', { weekday: 'short' })}</span><br>${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`;
                 head.appendChild(th);
             }
 
+            // Render Rows
             state.staff.forEach((s, sIdx) => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-white z-10">${s.name}</td>`;
@@ -387,7 +392,7 @@
                     const val = finalMatrix[sIdx][i];
                     const td = document.createElement('td');
                     const isManual = !!state.manualOverrides[`${sIdx}-${i}`];
-                    const isWarning = checkContinuousD(sIdx, i, finalMatrix);
+                    const isWarning = countConsecutiveD(sIdx, i, finalMatrix) >= 4;
                     td.className = `p-4 border shift-cell shift-${val} ${isManual ? 'manual-entry' : ''} ${isWarning ? 'warning-4d' : ''}`;
                     td.innerText = val;
                     td.onclick = () => {
@@ -400,11 +405,12 @@
                 body.appendChild(tr);
             });
 
+            // TI Support Row
             const trTI = document.createElement('tr');
-            trTI.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-slate-200 z-10 text-[10px]">TI SUPPORT</td>`;
+            trTI.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-slate-200 z-10 text-[9px] uppercase tracking-tighter">TI SUPPORT</td>`;
             for (let i = 0; i < state.totalDays; i++) {
                 const td = document.createElement('td');
-                const flag = tiNeededFlags[i];
+                const flag = tiUsage[i];
                 td.className = `p-4 border font-bold text-[9px] ${flag ? 'shift-TI' : 'text-slate-300'}`;
                 td.innerText = flag || "-";
                 trTI.appendChild(td);
