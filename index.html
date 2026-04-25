@@ -1,0 +1,384 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRND Roster Planner Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #1e293b; transition: background 0.3s; }
+        
+        .shift-cell { font-weight: 700; transition: all 0.1s; cursor: pointer; border: 1px solid #e2e8f0; min-width: 45px; }
+        
+        /* Shift Color Palette */
+        .shift-D { background-color: #dcfce7; color: #166534; } 
+        .shift-N { background-color: #fee2e2; color: #991b1b; } 
+        .shift-O { background-color: #fef9c3; color: #854d0e; } 
+        .shift-ON { background-color: #f3e8ff; color: #6b21a8; } 
+        .shift-R { background-color: #f1f5f9; color: #64748b; }
+        .shift-S { background-color: #ecfeff; color: #0891b2; }
+        .shift-L { background-color: #1e293b; color: white; }
+        .shift-TI { background-color: #312e81; color: white; } 
+        .shift-- { background-color: white; color: #cbd5e1; }
+        
+        .req-input { width: 100%; height: 100%; text-align: center; font-weight: bold; border: none; background: transparent; text-transform: uppercase; }
+        .req-input:focus { outline: 2px solid #3b82f6; background: #fff; }
+
+        .manual-entry { outline: 3px solid #a855f7 !important; outline-offset: -3px; color: #6b21a8 !important; background-color: #faf5ff !important; }
+        
+        .warning-4d { position: relative; }
+        .warning-4d::after { content: '⚠️ 4D'; position: absolute; top: -2px; right: 2px; font-size: 8px; color: #b91c1c; font-weight: 900; }
+
+        /* Print Mode Overlay Logic */
+        body.is-printing .no-print { display: none !important; }
+        body.is-printing { background: white !important; padding: 0 !important; }
+        body.is-printing .max-w-7xl { max-width: 100% !important; width: 100% !important; margin: 0 !important; }
+        body.is-printing #rosterContainer { border: none !important; box-shadow: none !important; padding: 0 !important; }
+        
+        #print-instruction { display: none; }
+        body.is-printing #print-instruction { display: block; }
+
+        @media print {
+            .no-print, #print-instruction { display: none !important; }
+            body { background: white !important; }
+            table { font-size: 10px; width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #333 !important; padding: 6px !important; }
+            .shift-cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @page { size: landscape; margin: 10mm; }
+        }
+        
+        #toast {
+            visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center;
+            border-radius: 8px; padding: 16px; position: fixed; z-index: 100; left: 50%; bottom: 30px;
+            transform: translateX(-50%); font-weight: bold;
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div id="toast">Message here</div>
+
+    <div id="print-instruction" class="bg-indigo-600 text-white p-4 text-center sticky top-0 z-50 shadow-lg no-print">
+        <p class="font-bold uppercase tracking-widest">Print Mode Ready</p>
+        <p class="text-sm opacity-90">Please use your browser's print command (<kbd class="bg-indigo-800 px-1 rounded">Ctrl+P</kbd> or <kbd class="bg-indigo-800 px-1 rounded">Cmd+P</kbd>).</p>
+        <button onclick="exitPrintMode()" class="mt-2 text-xs underline font-bold uppercase tracking-tighter hover:text-indigo-200 transition">Exit Print Mode</button>
+    </div>
+
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8 text-center no-print">
+            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">PRND Roster Planner Pro</h1>
+            <p class="text-slate-500 mt-1 italic text-sm">Automated Duty Allocation & Export System</p>
+        </header>
+
+        <div class="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-slate-200 no-print">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Staff 1</label>
+                    <input type="text" id="name0" value="AR" class="w-full p-2 mb-2 border rounded font-bold">
+                    <select id="rest0" class="w-full p-2 text-sm border rounded">
+                        <option value="4" selected>Rest Day: Thursday</option>
+                        <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="5">Friday</option><option value="6">Saturday</option>
+                    </select>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Staff 2</label>
+                    <input type="text" id="name1" value="AS" class="w-full p-2 mb-2 border rounded font-bold">
+                    <select id="rest1" class="w-full p-2 text-sm border rounded">
+                        <option value="6" selected>Rest Day: Saturday</option>
+                        <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option>
+                    </select>
+                </div>
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Staff 3</label>
+                    <input type="text" id="name2" value="SKLA" class="w-full p-2 mb-2 border rounded font-bold">
+                    <select id="rest2" class="w-full p-2 text-sm border rounded">
+                        <option value="3" selected>Rest Day: Wednesday</option>
+                        <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-end gap-4 border-t pt-6">
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-sm font-bold mb-1">Start Date</label>
+                    <input type="date" id="startDate" class="w-full p-2 border rounded">
+                </div>
+                <div class="flex-1 min-w-[120px]">
+                    <label class="block text-sm font-bold mb-1">Total Days</label>
+                    <input type="number" id="numDays" value="7" min="1" max="90" class="w-full p-2 border rounded">
+                </div>
+                <button onclick="initializeGrid()" class="bg-slate-900 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-slate-800 transition">1. Setup Requirements</button>
+            </div>
+        </div>
+
+        <div id="reqContainer" class="hidden bg-white rounded-2xl shadow-sm p-6 mb-6 border border-slate-200 no-print">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-bold text-lg text-slate-800">2. Define Manual Requirements</h2>
+                <button onclick="extendDays(7)" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg border border-indigo-100 hover:bg-indigo-100 font-bold transition">➕ Add 7 Days</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse border rounded-lg">
+                    <thead><tr id="reqHead" class="bg-slate-50"></tr></thead>
+                    <tbody id="reqBody"></tbody>
+                </table>
+            </div>
+            <div class="mt-8 flex justify-center">
+                <button onclick="generateRoster()" class="bg-indigo-600 text-white px-12 py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-xl transition transform hover:scale-105">
+                    3. Generate Final Roster
+                </button>
+            </div>
+        </div>
+
+        <div id="rosterContainer" class="hidden bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 no-print">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">Final Staff Roster</h2>
+                    <p class="text-xs text-slate-400">Click cells to cycle duties. Gaps are automatically detected below.</p>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button onclick="copyToClipboard()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-300 transition text-sm flex-1">Copy Data</button>
+                    <button onclick="enterPrintMode()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition text-sm flex-1 shadow-lg">Save PDF</button>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto" id="printableArea">
+                <table class="w-full text-center border-collapse border-2 border-slate-300 bg-white">
+                    <thead><tr id="finalHead" class="bg-slate-100"></tr></thead>
+                    <tbody id="finalBody"></tbody>
+                </table>
+            </div>
+            
+            <div class="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap gap-4 no-print">
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-TI block rounded"></i> TI: Borrowed</div>
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-L block rounded"></i> L: Leave</div>
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 border border-purple-500 block rounded bg-purple-50"></i> Purple: Edited</div>
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><span class="text-red-600 font-black">⚠️ 4D:</span> Working too long</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            startDate: null,
+            totalDays: 7,
+            staff: [],
+            requirements: {}, 
+            manualOverrides: {} 
+        };
+
+        const shiftOrder = ["D", "N", "ON", "O", "R", "S", "L", "TI", "-"];
+
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.className = "show";
+            setTimeout(() => { t.className = ""; }, 3000);
+        }
+
+        function enterPrintMode() {
+            document.body.classList.add('is-printing');
+            showToast("Print Mode Ready. Press Ctrl+P.");
+        }
+
+        function exitPrintMode() {
+            document.body.classList.remove('is-printing');
+        }
+
+        function copyToClipboard() {
+            const table = document.getElementById('printableArea');
+            const range = document.createRange();
+            range.selectNode(table);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            try {
+                document.execCommand('copy');
+                showToast("Copied! Paste into Excel/Word.");
+            } catch (err) {
+                showToast("Please select the table manually.");
+            }
+            window.getSelection().removeAllRanges();
+        }
+
+        function initializeGrid() {
+            const dateStr = document.getElementById('startDate').value;
+            if (!dateStr) return showToast("Please select a date.");
+            
+            state.startDate = new Date(dateStr);
+            state.totalDays = parseInt(document.getElementById('numDays').value);
+            state.staff = [
+                { name: document.getElementById('name0').value, rest: parseInt(document.getElementById('rest0').value) },
+                { name: document.getElementById('name1').value, rest: parseInt(document.getElementById('rest1').value) },
+                { name: document.getElementById('name2').value, rest: parseInt(document.getElementById('rest2').value) }
+            ];
+
+            renderReqGrid();
+            document.getElementById('reqContainer').classList.remove('hidden');
+        }
+
+        function extendDays(days) {
+            state.totalDays += days;
+            document.getElementById('numDays').value = state.totalDays;
+            renderReqGrid();
+            if(!document.getElementById('rosterContainer').classList.contains('hidden')) generateRoster();
+        }
+
+        function renderReqGrid() {
+            const head = document.getElementById('reqHead');
+            const body = document.getElementById('reqBody');
+            head.innerHTML = '<th class="p-3 border sticky left-0 bg-slate-50 min-w-[140px] text-[10px] uppercase">Staff</th>';
+            body.innerHTML = '';
+
+            for (let i = 0; i < state.totalDays; i++) {
+                const d = new Date(state.startDate);
+                d.setDate(d.getDate() + i);
+                const th = document.createElement('th');
+                th.className = "p-2 border text-[10px] min-w-[55px] bg-slate-50";
+                th.innerHTML = `<b>${d.toLocaleDateString('en-GB', { weekday: 'short' })}</b><br>${d.toLocaleDateString('en-GB', { day: '2-digit' })}`;
+                head.appendChild(th);
+            }
+
+            state.staff.forEach((s, sIdx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-white z-10">${s.name}</td>`;
+                for (let i = 0; i < state.totalDays; i++) {
+                    const td = document.createElement('td');
+                    td.className = "p-0 border";
+                    const key = `${sIdx}-${i}`;
+                    const input = document.createElement('input');
+                    input.className = "req-input p-2";
+                    input.value = state.requirements[key] || "-";
+                    input.onfocus = (e) => { if (e.target.value === "-") e.target.value = ""; };
+                    input.onblur = (e) => { if (e.target.value === "") e.target.value = "-"; };
+                    input.oninput = (e) => { state.requirements[key] = e.target.value.toUpperCase(); };
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                }
+                body.appendChild(tr);
+            });
+        }
+
+        function getAutoShift(sIdx, date, dayIdx) {
+            const dayOfWeek = date.getDay();
+            const restDay = state.staff[sIdx].rest;
+            const offset = (dayOfWeek - restDay + 7) % 7;
+            if (sIdx === 0) return ["R", "N", "ON", "ON", "O", "D", "D"][offset];
+            if (sIdx === 1) return ["R", "D", "D", "N", "ON", "ON", "O"][offset];
+            let shift = ["R", "D", "D", "D", "S", "N", "O"][offset];
+            if (shift === "S" && dayOfWeek === 0) {
+                // Fixed logic to safely check requirements
+                const req0 = state.requirements[`0-${dayIdx}`];
+                const req1 = state.requirements[`1-${dayIdx}`];
+                if (req0 === 'L' || req1 === 'L') return "D";
+            }
+            return shift;
+        }
+
+        function checkContinuousD(sIdx, currentDayIdx, matrix) {
+            const val = matrix[sIdx][currentDayIdx];
+            if (val !== 'D') return false;
+            let count = 1;
+            for (let i = currentDayIdx - 1; i >= 0; i--) {
+                if (matrix[sIdx] && matrix[sIdx][i] === 'D') count++;
+                else break;
+            }
+            return count >= 4;
+        }
+
+        function generateRoster() {
+            const head = document.getElementById('finalHead');
+            const body = document.getElementById('finalBody');
+            head.innerHTML = '<th class="p-3 border font-bold bg-slate-100 sticky left-0 z-20">STAFF</th>';
+            body.innerHTML = '';
+
+            const finalMatrix = state.staff.map(() => new Array(state.totalDays).fill("-"));
+            const tiNeededFlags = new Array(state.totalDays).fill(null);
+
+            // Populate Duty Matrix with strict fallbacks
+            state.staff.forEach((s, sIdx) => {
+                for (let i = 0; i < state.totalDays; i++) {
+                    const d = new Date(state.startDate);
+                    d.setDate(d.getDate() + i);
+                    const key = `${sIdx}-${i}`;
+                    
+                    let finalVal = "-";
+                    const override = state.manualOverrides[key];
+                    const requirement = state.requirements[key];
+
+                    if (override && override !== undefined) {
+                        finalVal = override;
+                    } else if (requirement && requirement !== "-" && requirement !== undefined) {
+                        finalVal = requirement;
+                    } else {
+                        finalVal = getAutoShift(sIdx, d, i);
+                    }
+                    
+                    finalMatrix[sIdx][i] = finalVal || "-";
+                }
+            });
+
+            // Gap Detection
+            for (let i = 0; i < state.totalDays; i++) {
+                const dayShifts = finalMatrix.map(row => row[i]);
+                if (dayShifts.includes("TI")) {
+                    tiNeededFlags[i] = "ON DUTY";
+                } else if (!dayShifts.includes("D")) {
+                    tiNeededFlags[i] = "REQ: DAY";
+                } else if (!dayShifts.includes("N") && !dayShifts.includes("ON")) {
+                    tiNeededFlags[i] = "REQ: NIGHT";
+                }
+                
+                const d = new Date(state.startDate);
+                d.setDate(d.getDate() + i);
+                const th = document.createElement('th');
+                th.className = "p-3 border text-[11px] font-bold bg-slate-50";
+                th.innerHTML = `<span class="text-slate-400">${d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}</span><br>${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`;
+                head.appendChild(th);
+            }
+
+            // Render Staff
+            state.staff.forEach((s, sIdx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-white z-10">${s.name}</td>`;
+                for (let i = 0; i < state.totalDays; i++) {
+                    const val = finalMatrix[sIdx][i];
+                    const td = document.createElement('td');
+                    const isManual = !!state.manualOverrides[`${sIdx}-${i}`];
+                    const isWarning = checkContinuousD(sIdx, i, finalMatrix);
+                    
+                    td.className = `p-4 border shift-cell shift-${val} ${isManual ? 'manual-entry' : ''} ${isWarning ? 'warning-4d' : ''}`;
+                    td.innerText = val;
+                    td.onclick = () => {
+                        let curVal = td.innerText;
+                        let curIdx = shiftOrder.indexOf(curVal);
+                        if (curIdx === -1) curIdx = shiftOrder.length - 1;
+                        state.manualOverrides[`${sIdx}-${i}`] = shiftOrder[(curIdx + 1) % shiftOrder.length];
+                        generateRoster();
+                    };
+                    tr.appendChild(td);
+                }
+                body.appendChild(tr);
+            });
+
+            // Render TI Row
+            const trTI = document.createElement('tr');
+            trTI.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-slate-200 z-10 text-[10px]">TI SUPPORT</td>`;
+            for (let i = 0; i < state.totalDays; i++) {
+                const td = document.createElement('td');
+                const flag = tiNeededFlags[i];
+                td.className = `p-4 border font-bold text-[9px] ${flag ? 'shift-TI' : 'text-slate-300'}`;
+                td.innerText = flag || "-";
+                trTI.appendChild(td);
+            }
+            body.appendChild(trTI);
+
+            document.getElementById('rosterContainer').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
+
+```
