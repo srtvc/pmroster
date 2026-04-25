@@ -31,12 +31,11 @@
         .warning-4d { position: relative; }
         .warning-4d::after { content: '⚠️ 4D'; position: absolute; top: -2px; right: 2px; font-size: 8px; color: #b91c1c; font-weight: 900; }
 
-        /* Print Mode Overlay Logic */
+        /* Print Mode */
         body.is-printing .no-print { display: none !important; }
         body.is-printing { background: white !important; padding: 0 !important; }
         body.is-printing .max-w-7xl { max-width: 100% !important; width: 100% !important; margin: 0 !important; }
         body.is-printing #rosterContainer { border: none !important; box-shadow: none !important; padding: 0 !important; }
-        
         #print-instruction { display: none; }
         body.is-printing #print-instruction { display: block; }
 
@@ -64,14 +63,14 @@
 
     <div id="print-instruction" class="bg-indigo-600 text-white p-4 text-center sticky top-0 z-50 shadow-lg no-print">
         <p class="font-bold uppercase tracking-widest">Print Mode Ready</p>
-        <p class="text-sm opacity-90">Please use your browser's print command (<kbd class="bg-indigo-800 px-1 rounded">Ctrl+P</kbd> or <kbd class="bg-indigo-800 px-1 rounded">Cmd+P</kbd>).</p>
+        <p class="text-sm opacity-90">Use <kbd class="bg-indigo-800 px-1 rounded">Ctrl+P</kbd> or <kbd class="bg-indigo-800 px-1 rounded">Cmd+P</kbd> to save PDF.</p>
         <button onclick="exitPrintMode()" class="mt-2 text-xs underline font-bold uppercase tracking-tighter hover:text-indigo-200 transition">Exit Print Mode</button>
     </div>
 
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 text-center no-print">
             <h1 class="text-3xl font-bold text-slate-900 tracking-tight">PRND Roster Planner Pro</h1>
-            <p class="text-slate-500 mt-1 italic text-sm">Automated Duty Allocation & Export System</p>
+            <p class="text-slate-500 mt-1 italic text-sm">Strict Pattern Validation & Auto-O Enforcement</p>
         </header>
 
         <div class="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-slate-200 no-print">
@@ -137,7 +136,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 no-print">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800">Final Staff Roster</h2>
-                    <p class="text-xs text-slate-400">Click cells to cycle duties. Gaps are automatically detected below.</p>
+                    <p class="text-xs text-slate-400">Night shifts (N/ON) are automatically followed by Off (O).</p>
                 </div>
                 <div class="flex gap-2 w-full md:w-auto">
                     <button onclick="copyToClipboard()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-300 transition text-sm flex-1">Copy Data</button>
@@ -156,7 +155,7 @@
                 <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-TI block rounded"></i> TI: Borrowed</div>
                 <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-L block rounded"></i> L: Leave</div>
                 <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 border border-purple-500 block rounded bg-purple-50"></i> Purple: Edited</div>
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><span class="text-red-600 font-black">⚠️ 4D:</span> Working too long</div>
+                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><span class="text-red-600 font-black">⚠️ 4D:</span> 4+ Consecutive Days</div>
             </div>
         </div>
     </div>
@@ -198,7 +197,7 @@
                 document.execCommand('copy');
                 showToast("Copied! Paste into Excel/Word.");
             } catch (err) {
-                showToast("Please select the table manually.");
+                showToast("Select table manually to copy.");
             }
             window.getSelection().removeAllRanges();
         }
@@ -269,7 +268,6 @@
             if (sIdx === 1) return ["R", "D", "D", "N", "ON", "ON", "O"][offset];
             let shift = ["R", "D", "D", "D", "S", "N", "O"][offset];
             if (shift === "S" && dayOfWeek === 0) {
-                // Fixed logic to safely check requirements
                 const req0 = state.requirements[`0-${dayIdx}`];
                 const req1 = state.requirements[`1-${dayIdx}`];
                 if (req0 === 'L' || req1 === 'L') return "D";
@@ -297,7 +295,7 @@
             const finalMatrix = state.staff.map(() => new Array(state.totalDays).fill("-"));
             const tiNeededFlags = new Array(state.totalDays).fill(null);
 
-            // Populate Duty Matrix with strict fallbacks
+            // Populate Duty Matrix with Strict Sequence Enforcement
             state.staff.forEach((s, sIdx) => {
                 for (let i = 0; i < state.totalDays; i++) {
                     const d = new Date(state.startDate);
@@ -308,19 +306,33 @@
                     const override = state.manualOverrides[key];
                     const requirement = state.requirements[key];
 
-                    if (override && override !== undefined) {
+                    // 1. Priority: Manual Override or Requirement
+                    if (override !== undefined) {
                         finalVal = override;
-                    } else if (requirement && requirement !== "-" && requirement !== undefined) {
+                    } else if (requirement !== undefined && requirement !== "-") {
                         finalVal = requirement;
                     } else {
+                        // 2. Automated Logic
                         finalVal = getAutoShift(sIdx, d, i);
                     }
+
+                    // 3. Post-Night Enforcement Rule: Mandatory O after N/ON
+                    // This rule applies IF the user hasn't forced a specific different duty like "L"
+                    if (i > 0) {
+                        const prevShift = finalMatrix[sIdx][i-1];
+                        if (prevShift === "N" || prevShift === "ON") {
+                            // If current is not Leave or a manual change, force to "O"
+                            if (finalVal !== "L" && override === undefined && (requirement === undefined || requirement === "-")) {
+                                finalVal = "O";
+                            }
+                        }
+                    }
                     
-                    finalMatrix[sIdx][i] = finalVal || "-";
+                    finalMatrix[sIdx][i] = finalVal;
                 }
             });
 
-            // Gap Detection
+            // Gap Detection & Header Rendering
             for (let i = 0; i < state.totalDays; i++) {
                 const dayShifts = finalMatrix.map(row => row[i]);
                 if (dayShifts.includes("TI")) {
@@ -339,7 +351,7 @@
                 head.appendChild(th);
             }
 
-            // Render Staff
+            // Render Staff Rows
             state.staff.forEach((s, sIdx) => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-white z-10">${s.name}</td>`;
@@ -356,7 +368,7 @@
                         let curIdx = shiftOrder.indexOf(curVal);
                         if (curIdx === -1) curIdx = shiftOrder.length - 1;
                         state.manualOverrides[`${sIdx}-${i}`] = shiftOrder[(curIdx + 1) % shiftOrder.length];
-                        generateRoster();
+                        generateRoster(); // Re-trigger to update enforcement logic
                     };
                     tr.appendChild(td);
                 }
