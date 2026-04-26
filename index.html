@@ -8,163 +8,185 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #1e293b; transition: background 0.3s; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
         
-        .shift-cell { position: relative; font-weight: 700; transition: all 0.1s; cursor: pointer; border: 1px solid #e2e8f0; min-width: 55px; height: 60px; }
+        /* Table Structure */
+        .roster-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .roster-table th, .roster-table td { border: 1px solid #cbd5e1; padding: 0; }
         
-        /* Original Duty Badge */
-        .orig-badge { position: absolute; top: 2px; right: 2px; font-size: 9px; font-weight: 500; opacity: 0.5; pointer-events: none; }
+        .cell-wrapper { 
+            position: relative; 
+            width: 100%; 
+            height: 60px; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.1s ease;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .orig-badge { 
+            position: absolute; 
+            top: 2px; 
+            right: 4px; 
+            font-size: 8px; 
+            font-weight: 700; 
+            opacity: 0.4; 
+            pointer-events: none; 
+        }
 
         /* Shift Color Palette */
-        .shift-D { background-color: #dcfce7; color: #166534; } 
-        .shift-N { background-color: #fee2e2; color: #991b1b; } 
-        .shift-O { background-color: #fef9c3; color: #854d0e; } 
-        .shift-ON { background-color: #f3e8ff; color: #6b21a8; } 
-        .shift-R { background-color: #f1f5f9; color: #64748b; }
-        .shift-S { background-color: #ecfeff; color: #0891b2; }
-        .shift-L { background-color: #1e293b; color: white; }
-        .shift-TI { background-color: #312e81; color: white; } 
-        .shift-CR { background-color: #ccfbf1; color: #0f766e; border: 1px solid #5eead4; } 
-        .shift-- { background-color: white; color: #cbd5e1; }
+        .shift-D { background-color: #dcfce7; color: #14532d; } 
+        .shift-N { background-color: #fee2e2; color: #7f1d1d; } 
+        .shift-O { background-color: #fef9c3; color: #713f12; } 
+        .shift-ON { background-color: #f3e8ff; color: #581c87; } 
+        .shift-R { background-color: #f1f5f9; color: #334155; }
+        .shift-S { background-color: #ecfeff; color: #083344; }
+        .shift-L { background-color: #1e293b; color: #ffffff; }
+        .shift-TI { background-color: #312e81; color: #ffffff; } 
+        .shift-CR { background-color: #ccfbf1; color: #134e4a; } 
+        .shift-- { background-color: #ffffff; color: #94a3b8; }
         
-        .req-input { width: 100%; height: 100%; text-align: center; font-weight: bold; border: none; background: transparent; text-transform: uppercase; }
-        .req-input:focus { outline: 2px solid #3b82f6; background: #fff; }
+        .req-input { width: 100%; height: 50px; text-align: center; font-weight: 800; border: none; background: transparent; text-transform: uppercase; }
+        .req-input:focus { outline: none; background: #fff; box-shadow: inset 0 0 0 2px #6366f1; }
 
-        .manual-entry { outline: 3px solid #a855f7 !important; outline-offset: -3px; color: #6b21a8 !important; background-color: #faf5ff !important; }
-        
-        /* Warning Badge */
-        .warning-4d::after { content: '⚠️ 4D'; position: absolute; bottom: 2px; right: 2px; font-size: 8px; color: #b91c1c; font-weight: 900; }
+        .manual-entry { box-shadow: inset 0 0 0 3px #a855f7 !important; }
+        .warning-4d::after { content: '⚠️'; position: absolute; bottom: 2px; right: 4px; font-size: 10px; }
 
-        body.is-printing .no-print { display: none !important; }
-        body.is-printing { background: white !important; padding: 0 !important; }
-        
-        #print-instruction { display: none; }
-        body.is-printing #print-instruction { display: block; }
-
-        @media print {
-            .no-print, #print-instruction { display: none !important; }
-            body { background: white !important; }
-            table { font-size: 10px; width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #333 !important; padding: 4px !important; }
-            .shift-cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; height: auto !important; min-height: 40px; }
-            @page { size: landscape; margin: 10mm; }
-        }
-        
         #toast {
-            visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center;
-            border-radius: 8px; padding: 16px; position: fixed; z-index: 100; left: 50%; bottom: 30px;
-            transform: translateX(-50%); font-weight: bold;
+            visibility: hidden; min-width: 280px; background-color: #1e293b; color: #fff; text-align: center;
+            border-radius: 12px; padding: 16px; position: fixed; z-index: 100; left: 50%; bottom: 30px;
+            transform: translateX(-50%); font-weight: 600; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
         }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+        .loader { width: 18px; height: 18px; border: 2px solid #FFF; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; padding: 0 !important; }
+            .cell-wrapper { height: 50px !important; border: 1px solid #e2e8f0 !important; }
+            @page { size: landscape; margin: 5mm; }
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
-    <div id="toast">Message here</div>
-
-    <div id="print-instruction" class="bg-indigo-600 text-white p-4 text-center sticky top-0 z-50 shadow-lg no-print">
-        <p class="font-bold">PRINT MODE ACTIVE</p>
-        <p class="text-sm">Use <kbd class="bg-indigo-800 px-1 rounded">Ctrl+P</kbd> to save as PDF. Original duties in brackets will be visible.</p>
-        <button onclick="exitPrintMode()" class="mt-2 text-xs underline uppercase tracking-tighter">Exit Print Mode</button>
-    </div>
+    <div id="toast">Notification</div>
 
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 text-center no-print">
-            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">PRND Roster Planner Pro</h1>
-            <p class="text-slate-500 mt-1 italic text-sm">Base reference tracking with Intelligent TI Allocation</p>
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight">PRND Roster Planner Pro</h1>
+            <p class="text-slate-500 mt-1 italic text-sm">Automated Duty Allocation & Support Engine</p>
         </header>
 
-        <!-- Configuration -->
-        <div class="bg-white rounded-2xl shadow-sm p-6 mb-6 border border-slate-200 no-print">
+        <!-- STEP 1: CONFIGURATION -->
+        <div class="bg-white rounded-3xl shadow-sm p-6 mb-8 border border-slate-200 no-print">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Staff 1</label>
-                    <input type="text" id="name0" value="AR" class="w-full p-2 mb-2 border rounded font-bold">
-                    <select id="rest0" class="w-full p-2 text-sm border rounded">
-                        <option value="4" selected>Rest Day: Thursday</option>
-                        <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="5">Friday</option><option value="6">Saturday</option>
+                <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Staff 1</label>
+                    <input type="text" id="name0" value="AR" class="w-full p-2 mb-2 bg-white border rounded-lg font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                    <select id="rest0" class="w-full p-2 text-sm border rounded-lg">
+                        <option value="4" selected>Rest: Thursday</option>
+                        <option value="0">Rest: Sunday</option><option value="1">Rest: Monday</option><option value="2">Rest: Tuesday</option><option value="3">Rest: Wednesday</option><option value="5">Rest: Friday</option><option value="6">Rest: Saturday</option>
                     </select>
                 </div>
-                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Staff 2</label>
-                    <input type="text" id="name1" value="AS" class="w-full p-2 mb-2 border rounded font-bold">
-                    <select id="rest1" class="w-full p-2 text-sm border rounded">
-                        <option value="6" selected>Rest Day: Saturday</option>
-                        <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option>
+                <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Staff 2</label>
+                    <input type="text" id="name1" value="AS" class="w-full p-2 mb-2 bg-white border rounded-lg font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                    <select id="rest1" class="w-full p-2 text-sm border rounded-lg">
+                        <option value="6" selected>Rest: Saturday</option>
+                        <option value="0">Rest: Sunday</option><option value="1">Rest: Monday</option><option value="2">Rest: Tuesday</option><option value="3">Rest: Wednesday</option><option value="4">Rest: Thursday</option><option value="5">Rest: Friday</option>
                     </select>
                 </div>
-                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <label class="text-[10px] font-bold text-slate-400 uppercase">Staff 3</label>
-                    <input type="text" id="name2" value="SKLA" class="w-full p-2 mb-2 border rounded font-bold">
-                    <select id="rest2" class="w-full p-2 text-sm border rounded">
-                        <option value="3" selected>Rest Day: Wednesday</option>
-                        <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
+                <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Staff 3</label>
+                    <input type="text" id="name2" value="SKLA" class="w-full p-2 mb-2 bg-white border rounded-lg font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                    <select id="rest2" class="w-full p-2 text-sm border rounded-lg">
+                        <option value="3" selected>Rest: Wednesday</option>
+                        <option value="0">Rest: Sunday</option><option value="1">Rest: Monday</option><option value="2">Rest: Tuesday</option><option value="4">Rest: Thursday</option><option value="5">Rest: Friday</option><option value="6">Rest: Saturday</option>
                     </select>
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-end gap-4 border-t pt-6">
+            <div class="flex flex-wrap items-end gap-6 border-t pt-6">
                 <div class="flex-1 min-w-[200px]">
-                    <label class="block text-sm font-bold mb-1">Start Date</label>
-                    <input type="date" id="startDate" class="w-full p-2 border rounded">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Start Date</label>
+                    <input type="date" id="startDate" class="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
-                <div class="flex-1 min-w-[120px]">
-                    <label class="block text-sm font-bold mb-1">Total Days</label>
-                    <input type="number" id="numDays" value="7" min="1" max="90" class="w-full p-2 border rounded">
+                <div class="w-32">
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Total Days</label>
+                    <input type="number" id="numDays" value="7" min="1" max="90" class="w-full p-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
-                <button onclick="initializeGrid()" class="bg-slate-900 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-slate-800 transition">1. Setup Requirements</button>
+                <button onclick="initializeGrid()" class="bg-slate-900 text-white px-10 py-3 rounded-xl font-bold hover:bg-black transition-all shadow-lg">1. Setup Requirements</button>
             </div>
         </div>
 
-        <!-- Requirements Grid -->
-        <div id="reqContainer" class="hidden bg-white rounded-2xl shadow-sm p-6 mb-6 border border-slate-200 no-print">
+        <!-- STEP 2: REQUIREMENTS GRID -->
+        <div id="reqContainer" class="hidden bg-white rounded-3xl shadow-sm p-6 mb-8 border border-slate-200 no-print">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="font-bold text-lg text-slate-800">2. Define Manual Requirements</h2>
-                <button onclick="extendDays(7)" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg border border-indigo-100 hover:bg-indigo-100 font-bold transition">➕ Add 7 Days</button>
+                <h2 class="font-bold text-slate-800 text-lg">2. Manual Requirements Grid</h2>
+                <button onclick="extendDays(7)" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-100 transition">➕ Add Week</button>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full border-collapse border rounded-lg">
+            <div class="overflow-x-auto rounded-xl border border-slate-200">
+                <table class="roster-table bg-white">
                     <thead><tr id="reqHead" class="bg-slate-50"></tr></thead>
                     <tbody id="reqBody"></tbody>
                 </table>
             </div>
             <div class="mt-8 flex justify-center">
-                <button onclick="generateRoster()" class="bg-indigo-600 text-white px-12 py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-xl transition transform hover:scale-105">
-                    3. Generate Final Roster
+                <button onclick="generateRoster()" class="bg-indigo-600 text-white px-16 py-4 rounded-2xl font-black text-xl hover:bg-indigo-700 shadow-2xl transition-all hover:scale-105">
+                    Generate Final Roster
                 </button>
             </div>
         </div>
 
-        <!-- Final Roster -->
-        <div id="rosterContainer" class="hidden bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 no-print">
-                <div>
-                    <h2 class="text-xl font-bold text-slate-800">Final Staff Roster</h2>
-                    <p class="text-xs text-slate-400 italic">Duty in <span class="font-bold">(brackets)</span> represents the original automated schedule before rules were applied.</p>
+        <!-- STEP 3: FINAL ROSTER & AI PROMPT -->
+        <div id="rosterContainer" class="hidden bg-white rounded-3xl shadow-xl p-8 border border-slate-200">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 no-print">
+                <h2 class="text-2xl font-black text-slate-800">Final Staff Roster</h2>
+                <div class="flex gap-3 w-full md:w-auto">
+                    <button onclick="copyToClipboard()" class="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm flex-1 hover:bg-slate-200">Copy Data</button>
+                    <button onclick="window.print()" class="bg-slate-900 text-white px-8 py-2.5 rounded-xl font-bold text-sm flex-1 hover:bg-black">Export PDF</button>
                 </div>
-                <div class="flex gap-2 w-full md:w-auto">
-                    <button onclick="copyToClipboard()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-300 transition text-sm flex-1">Copy Data</button>
-                    <button onclick="enterPrintMode()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition text-sm flex-1 shadow-lg">Save PDF</button>
+            </div>
+
+            <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 mb-8 no-print">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <label class="block text-[11px] font-black text-indigo-500 uppercase mb-2 tracking-widest">AI Roster Assistant (Beta)</label>
+                        <textarea id="aiPrompt" rows="1" class="w-full p-4 border border-indigo-200 rounded-xl text-sm focus:ring-4 focus:ring-indigo-100 outline-none" placeholder="e.g. 'Move AS to Night on Tuesday and swap with AR'"></textarea>
+                    </div>
+                    <div class="flex items-end">
+                        <button id="aiSubmit" onclick="askAI()" class="w-full md:w-auto bg-indigo-600 text-white px-10 py-4 rounded-xl font-black hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                            <span>Optimize</span>
+                        </button>
+                    </div>
                 </div>
             </div>
             
-            <div class="overflow-x-auto" id="printableArea">
-                <table class="w-full text-center border-collapse border-2 border-slate-300 bg-white">
-                    <thead><tr id="finalHead" class="bg-slate-100"></tr></thead>
+            <div class="overflow-x-auto border rounded-2xl border-slate-300" id="printableArea">
+                <table class="roster-table text-center bg-white">
+                    <thead><tr id="finalHead" class="bg-slate-50"></tr></thead>
                     <tbody id="finalBody"></tbody>
                 </table>
             </div>
-            
-            <div class="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap gap-4 no-print">
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-TI block rounded"></i> TI: Borrowed</div>
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><i class="w-3 h-3 shift-CR block rounded"></i> CR: Compensatory Rest</div>
-                <div class="flex items-center gap-1 text-[10px] font-bold uppercase"><span class="px-1 border border-slate-300 text-[9px] font-bold">(X)</span>: Original Duty</div>
+
+            <div class="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-200 flex flex-wrap gap-8 no-print text-[10px] font-black uppercase text-slate-400">
+                <div class="flex items-center gap-2"><i class="w-4 h-4 shift-TI block rounded"></i> TI Support</div>
+                <div class="flex items-center gap-2"><i class="w-4 h-4 shift-CR block rounded"></i> Comp Rest (Debt Paid)</div>
+                <div class="flex items-center gap-2"><span class="px-2 border border-slate-300 opacity-50 font-bold rounded">(X)</span> Original Rotation</div>
+                <div class="flex items-center gap-2 text-red-500 font-bold">⚠️ 4+ Consecutive Days Duty</div>
             </div>
         </div>
     </div>
 
     <script>
+        const apiKey = "";
         let state = {
             startDate: null,
             totalDays: 7,
@@ -182,39 +204,59 @@
             setTimeout(() => { t.className = ""; }, 3000);
         }
 
-        function enterPrintMode() {
-            document.body.classList.add('is-printing');
-            showToast("Print Mode Active. Press Ctrl+P.");
-        }
+        async function askAI() {
+            const promptInput = document.getElementById('aiPrompt');
+            const btn = document.getElementById('aiSubmit');
+            const userQuery = promptInput.value.trim();
+            if (!userQuery) return showToast("Enter instructions first.");
+            
+            btn.disabled = true;
+            btn.innerHTML = `<span class="loader"></span>`;
 
-        function exitPrintMode() {
-            document.body.classList.remove('is-printing');
-        }
+            const sysMsg = `You are a Roster AI. Modify 'requirements' or 'manualOverrides' to fulfill requests.
+            Staff: ${state.staff.map((s,i) => `${i}:${s.name}`).join(', ')}.
+            Start Date: ${state.startDate ? state.startDate.toDateString() : 'Not Set'}.
+            Current Maps: ${JSON.stringify({ requirements: state.requirements, manualOverrides: state.manualOverrides })}.
+            Shifts: D, N, ON, O, R, S, L, TI, CR.
+            Response: ONLY JSON with updated 'requirements' and 'manualOverrides'. Keys: 'staffIndex-dayIndex'.`;
 
-        function copyToClipboard() {
-            const table = document.getElementById('printableArea');
-            const range = document.createRange();
-            range.selectNode(table);
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(range);
             try {
-                document.execCommand('copy');
-                showToast("Copied! Paste into Excel.");
-            } catch (err) {
-                showToast("Select table manually to copy.");
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: userQuery }] }],
+                        systemInstruction: { parts: [{ text: sysMsg }] },
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+                
+                const resData = await response.json();
+                const data = JSON.parse(resData.candidates[0].content.parts[0].text);
+                state.requirements = data.requirements || state.requirements;
+                state.manualOverrides = data.manualOverrides || state.manualOverrides;
+                
+                renderReqGrid();
+                generateRoster();
+                showToast("AI Optimization Complete.");
+                promptInput.value = "";
+            } catch (e) {
+                showToast("AI Request Failed.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "Optimize";
             }
-            window.getSelection().removeAllRanges();
         }
 
         function initializeGrid() {
             const dateStr = document.getElementById('startDate').value;
-            if (!dateStr) return showToast("Select a start date.");
+            if (!dateStr) return showToast("Select start date.");
             state.startDate = new Date(dateStr);
             state.totalDays = parseInt(document.getElementById('numDays').value);
             state.staff = [
-                { name: document.getElementById('name0').value, rest: parseInt(document.getElementById('rest0').value) },
-                { name: document.getElementById('name1').value, rest: parseInt(document.getElementById('rest1').value) },
-                { name: document.getElementById('name2').value, rest: parseInt(document.getElementById('rest2').value) }
+                { name: document.getElementById('name0').value || "AR", rest: parseInt(document.getElementById('rest0').value) },
+                { name: document.getElementById('name1').value || "AS", rest: parseInt(document.getElementById('rest1').value) },
+                { name: document.getElementById('name2').value || "SKLA", rest: parseInt(document.getElementById('rest2').value) }
             ];
             renderReqGrid();
             document.getElementById('reqContainer').classList.remove('hidden');
@@ -230,25 +272,25 @@
         function renderReqGrid() {
             const head = document.getElementById('reqHead');
             const body = document.getElementById('reqBody');
-            head.innerHTML = '<th class="p-3 border sticky left-0 bg-slate-50 min-w-[140px] text-[10px] uppercase">Staff</th>';
+            head.innerHTML = '<th class="p-4 border-r sticky left-0 bg-slate-50 text-[10px] font-black uppercase text-slate-400 min-w-[140px]">Staff</th>';
             body.innerHTML = '';
             for (let i = 0; i < state.totalDays; i++) {
                 const d = new Date(state.startDate);
                 d.setDate(d.getDate() + i);
                 const th = document.createElement('th');
-                th.className = "p-2 border text-[10px] min-w-[55px] bg-slate-50";
-                th.innerHTML = `<b>${d.toLocaleDateString('en-GB', { weekday: 'short' })}</b><br>${d.toLocaleDateString('en-GB', { day: '2-digit' })}`;
+                th.className = "p-3 border text-[11px] min-w-[75px] bg-slate-50";
+                th.innerHTML = `<b>${d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}</b><br><span class="text-slate-400 text-[10px]">${d.getDate()}</span>`;
                 head.appendChild(th);
             }
             state.staff.forEach((s, sIdx) => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-white z-10">${s.name}</td>`;
+                tr.innerHTML = `<td class="p-3 border font-black sticky left-0 bg-white border-r text-slate-700 shadow-sm">${s.name}</td>`;
                 for (let i = 0; i < state.totalDays; i++) {
                     const td = document.createElement('td');
                     td.className = "p-0 border";
                     const key = `${sIdx}-${i}`;
                     const input = document.createElement('input');
-                    input.className = "req-input p-2";
+                    input.className = "req-input";
                     input.value = state.requirements[key] || "-";
                     input.onfocus = (e) => { if (e.target.value === "-") e.target.value = ""; };
                     input.onblur = (e) => { if (e.target.value === "") e.target.value = "-"; };
@@ -260,134 +302,145 @@
             });
         }
 
+        // Hardened baseline logic
         function getAutoShift(sIdx, date, dayIdx) {
-            const dayOfWeek = date.getDay();
+            if (!date) return "D";
+            const dow = date.getDay();
             const restDay = state.staff[sIdx].rest;
-            const offset = (dayOfWeek - restDay + 7) % 7;
-            if (sIdx === 0) return ["R", "N", "ON", "ON", "O", "D", "D"][offset];
-            if (sIdx === 1) return ["R", "D", "D", "N", "ON", "ON", "O"][offset];
-            let shift = ["R", "D", "D", "D", "S", "N", "O"][offset];
-            if (shift === "S" && dayOfWeek === 0) {
-                const req0 = state.requirements[`0-${dayIdx}`];
-                const req1 = state.requirements[`1-${dayIdx}`];
-                if (req0 === 'L' || req1 === 'L') return "D";
-            }
-            return shift;
-        }
+            const offset = (dow - restDay + 7) % 7;
+            
+            let val = "D";
+            if (sIdx === 0) val = ["R", "N", "ON", "ON", "O", "D", "D"][offset];
+            else if (sIdx === 1) val = ["R", "D", "D", "N", "ON", "ON", "O"][offset];
+            else val = ["R", "D", "D", "D", "S", "N", "O"][offset];
 
-        function countConsecutiveD(sIdx, i, matrix) {
-            let count = 0;
-            for (let j = i; j >= 0; j--) {
-                if (matrix[sIdx][j] === 'D') count++;
-                else break;
+            if (val === "S" && dow === 0) {
+                const r0 = state.requirements[`0-${dayIdx}`];
+                const r1 = state.requirements[`1-${dayIdx}`];
+                if (r0 === 'L' || r1 === 'L') return "D";
             }
-            return count;
+            return val || "D";
         }
 
         function generateRoster() {
+            if (!state.startDate) return;
             const head = document.getElementById('finalHead');
             const body = document.getElementById('finalBody');
-            head.innerHTML = '<th class="p-3 border font-bold bg-slate-100 sticky left-0 z-20">STAFF</th>';
+            head.innerHTML = '<th class="p-4 bg-slate-50 sticky left-0 border-r z-20 text-[10px] font-black uppercase text-slate-400 min-w-[140px]">Staff</th>';
             body.innerHTML = '';
 
-            const finalMatrix = state.staff.map(() => new Array(state.totalDays).fill("-"));
-            const origMatrix = state.staff.map(() => new Array(state.totalDays).fill("-"));
+            const finalMatrix = state.staff.map(() => new Array(state.totalDays).fill("D"));
+            const origMatrix = state.staff.map(() => new Array(state.totalDays).fill("D"));
             const tiUsage = new Array(state.totalDays).fill(null);
             const staffDebt = [0, 0, 0];
 
             for (let i = 0; i < state.totalDays; i++) {
                 const d = new Date(state.startDate);
                 d.setDate(d.getDate() + i);
-                const dayOfWeek = d.getDay();
+                const dow = d.getDay();
 
                 state.staff.forEach((s, sIdx) => {
                     const key = `${sIdx}-${i}`;
-                    let val = "-";
-                    const override = state.manualOverrides[key];
-                    const requirement = state.requirements[key];
+                    
+                    // 1. Baseline
+                    let base = getAutoShift(sIdx, d, i);
+                    if (dow === s.rest) base = "R";
+                    else if (base === "R") base = "D";
+                    origMatrix[sIdx][i] = base;
 
-                    // Baseline (The duty displayed in brackets)
-                    let baseVal = getAutoShift(sIdx, d, i);
-                    if (dayOfWeek === s.rest) baseVal = "R";
-                    else if (baseVal === "R") baseVal = "D";
-                    origMatrix[sIdx][i] = baseVal;
+                    // 2. Initial Resolve
+                    let val = "D";
+                    const mo = state.manualOverrides[key];
+                    const rq = state.requirements[key];
 
-                    // Final Allocation Logic
-                    if (override !== undefined) val = override;
-                    else if (requirement !== undefined && requirement !== "-") val = requirement;
-                    else val = baseVal;
+                    if (mo && mo !== "-") val = mo;
+                    else if (rq && rq !== "-") val = rq;
+                    else val = base;
 
-                    // Golden Rule Lock: Rest Day
-                    if (dayOfWeek === s.rest) {
-                        if (val !== "L" && override === undefined) {
-                            const othersLeave = state.staff.some((_, idx) => idx !== sIdx && state.requirements[`${idx}-${i}`] === 'L');
-                            if (othersLeave) { val = "D"; staffDebt[sIdx]++; } 
-                            else val = "R";
+                    // 3. Golden Rule Enforcement
+                    if (dow === s.rest) {
+                        if (val !== "L" && !state.manualOverrides[key]) {
+                            const oL = state.staff.some((_, idx) => idx !== sIdx && state.requirements[`${idx}-${i}`] === 'L');
+                            if (oL) { val = "D"; staffDebt[sIdx]++; } else val = "R";
                         }
-                    } else if (val === "R") val = "D";
+                    } else if (val === "R") {
+                        val = "D";
+                    }
 
-                    // Golden Rule: O after Night
                     if (i > 0) {
                         const prev = finalMatrix[sIdx][i-1];
-                        if ((prev === "N" || prev === "ON") && val !== "L" && override === undefined) val = "O";
+                        if ((prev === "N" || prev === "ON") && val !== "L" && !state.manualOverrides[key]) val = "O";
                     }
-                    if (i > 0 && finalMatrix[sIdx][i-1] === "O" && val === "O" && override === undefined) val = "D";
 
-                    finalMatrix[sIdx][i] = val;
+                    if (i > 0 && finalMatrix[sIdx][i-1] === "O" && val === "O" && !state.manualOverrides[key]) {
+                        val = "D";
+                    }
+
+                    finalMatrix[sIdx][i] = val || "D";
                 });
 
-                // Intelligent Gap Fill
-                let hasDay = finalMatrix.some(row => row[i] === "D" || row[i] === "S");
-                let hasNight = finalMatrix.some(row => row[i] === "N" || row[i] === "ON");
-                if (!hasNight) { tiUsage[i] = "TI: NIGHT"; hasNight = true; }
-                if (!hasDay) { tiUsage[i] = tiUsage[i] ? "TI: FULL" : "TI: DAY"; hasDay = true; }
+                // Intelligent Support
+                let hD = finalMatrix.some(r => r[i] === "D" || r[i] === "S");
+                let hN = finalMatrix.some(r => r[i] === "N" || r[i] === "ON");
+                
+                if (!hN) { tiUsage[i] = "TI: NIGHT"; hN = true; }
+                if (!hD) { tiUsage[i] = tiUsage[i] ? "TI: FULL" : "TI: DAY"; hD = true; }
 
-                // Fatigue Relief
+                // 4D Fatigue Rule
                 if (!tiUsage[i]) {
                     state.staff.forEach((s, sIdx) => {
-                        if (countConsecutiveD(sIdx, i, finalMatrix) >= 4) {
-                            finalMatrix[sIdx][i] = "O";
-                            tiUsage[i] = "TI: RELIEF";
-                        }
+                        let c = 0;
+                        for (let j = i; j >= 0; j--) { if (finalMatrix[sIdx][j] === 'D') c++; else break; }
+                        if (c >= 4) { finalMatrix[sIdx][i] = "O"; tiUsage[i] = "TI: RELIEF"; }
                     });
                 }
 
-                // Compensatory Rest
+                // CR Restitution
                 state.staff.forEach((s, sIdx) => {
                     if (staffDebt[sIdx] > 0 && (finalMatrix[sIdx][i] === "D" || finalMatrix[sIdx][i] === "-")) {
                         const others = [0, 1, 2].filter(x => x !== sIdx);
-                        const coverageDay = others.some(x => finalMatrix[x][i] === "D" || finalMatrix[x][i] === "S") || (tiUsage[i] && tiUsage[i].includes("DAY"));
-                        const coverageNight = others.some(x => finalMatrix[x][i] === "N" || finalMatrix[x][i] === "ON") || (tiUsage[i] && tiUsage[i].includes("NIGHT"));
-                        if (coverageDay && coverageNight) { finalMatrix[sIdx][i] = "CR"; staffDebt[sIdx]--; }
+                        const cD = others.some(x => finalMatrix[x][i] === "D" || finalMatrix[x][i] === "S") || (tiUsage[i] && tiUsage[i].includes("DAY"));
+                        const cN = others.some(x => finalMatrix[x][i] === "N" || finalMatrix[x][i] === "ON") || (tiUsage[i] && tiUsage[i].includes("NIGHT"));
+                        if (cD && cN) { finalMatrix[sIdx][i] = "CR"; staffDebt[sIdx]--; }
                     }
                 });
             }
 
+            // Render Headers
             for (let i = 0; i < state.totalDays; i++) {
                 const d = new Date(state.startDate);
                 d.setDate(d.getDate() + i);
                 const th = document.createElement('th');
-                th.className = "p-3 border text-[11px] font-bold bg-slate-50";
-                th.innerHTML = `<span class="text-slate-400 uppercase">${d.toLocaleDateString('en-GB', { weekday: 'short' })}</span><br>${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`;
+                th.className = "p-2 border text-[11px] font-black bg-slate-50";
+                th.innerHTML = `<span class="text-slate-800">${d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}</span><br><span class="text-slate-400 font-bold">${d.getDate()}</span>`;
                 head.appendChild(th);
             }
 
+            // Render Rows
             state.staff.forEach((s, sIdx) => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-white z-10">${s.name}</td>`;
+                tr.innerHTML = `<td class="p-3 border font-black sticky left-0 bg-white border-r z-10 text-slate-700 text-sm shadow-sm">${s.name}</td>`;
                 for (let i = 0; i < state.totalDays; i++) {
                     const val = finalMatrix[sIdx][i];
-                    const orig = origMatrix[sIdx][i];
+                    const org = origMatrix[sIdx][i];
+                    const key = `${sIdx}-${i}`;
                     const td = document.createElement('td');
-                    const isManual = !!state.manualOverrides[`${sIdx}-${i}`];
-                    const isWarning = countConsecutiveD(sIdx, i, finalMatrix) >= 4;
                     
-                    td.className = `p-4 border shift-cell shift-${val} ${isManual ? 'manual-entry' : ''} ${isWarning ? 'warning-4d' : ''}`;
-                    td.innerHTML = `<span class="orig-badge">(${orig})</span>${val}`;
-                    
+                    let c = 0;
+                    for (let j = i; j >= 0; j--) { if (finalMatrix[sIdx][j] === 'D') c++; else break; }
+                    const isW = c >= 4;
+                    const isM = !!state.manualOverrides[key];
+
+                    td.innerHTML = `
+                        <div class="cell-wrapper shift-${val} ${isM ? 'manual-entry' : ''} ${isW ? 'warning-4d' : ''}">
+                            <span class="orig-badge">(${org})</span>
+                            <span class="text-sm font-black tracking-tight">${val}</span>
+                        </div>
+                    `;
                     td.onclick = () => {
-                        let curIdx = shiftOrder.indexOf(val);
-                        state.manualOverrides[`${sIdx}-${i}`] = shiftOrder[(curIdx + 1) % shiftOrder.length];
+                        let cur = shiftOrder.indexOf(val);
+                        if (cur === -1) cur = 9;
+                        state.manualOverrides[key] = shiftOrder[(cur + 1) % shiftOrder.length];
                         generateRoster();
                     };
                     tr.appendChild(td);
@@ -395,17 +448,38 @@
                 body.appendChild(tr);
             });
 
+            // TI Support Row
             const trTI = document.createElement('tr');
-            trTI.innerHTML = `<td class="p-3 border font-bold sticky left-0 bg-slate-200 z-10 text-[9px] uppercase tracking-tighter">TI SUPPORT</td>`;
+            trTI.innerHTML = `<td class="p-3 border bg-slate-50 sticky left-0 z-10 text-[9px] font-black uppercase text-slate-400">Support</td>`;
             for (let i = 0; i < state.totalDays; i++) {
                 const td = document.createElement('td');
-                const flag = tiUsage[i];
-                td.className = `p-4 border font-bold text-[9px] ${flag ? 'shift-TI' : 'text-slate-300'}`;
-                td.innerText = flag || "-";
+                const fl = tiUsage[i];
+                td.innerHTML = `
+                    <div class="cell-wrapper ${fl ? 'shift-TI' : 'text-slate-300'}">
+                        <span class="text-[9px] font-black leading-tight">${fl || "-"}</span>
+                    </div>
+                `;
                 trTI.appendChild(td);
             }
             body.appendChild(trTI);
+
             document.getElementById('rosterContainer').classList.remove('hidden');
+            window.scrollTo({ top: document.getElementById('rosterContainer').offsetTop - 40, behavior: 'smooth' });
+        }
+
+        function copyToClipboard() {
+            const table = document.getElementById('printableArea');
+            const range = document.createRange();
+            range.selectNode(table);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            try {
+                document.execCommand('copy');
+                showToast("Roster Copied!");
+            } catch (err) {
+                showToast("Manual select required.");
+            }
+            window.getSelection().removeAllRanges();
         }
     </script>
 </body>
